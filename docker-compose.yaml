@@ -18,7 +18,6 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://agent:4318
       - OTEL_SERVICE_NAME=nodejs-opentelemetry-tempo
 
   agent:
