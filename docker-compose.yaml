@@ -1,0 +1,38 @@
+version: "3"
+
+services:
+  tempo:
+    image: grafana/tempo:1.3.2
+    command:
+      - "-storage.trace.backend=local"                  # tell tempo where to permanently put traces
+      - "-storage.trace.local.path=/tmp/tempo/traces"
+      - "-storage.trace.wal.path=/tmp/tempo/wal"        # tell tempo where to store the wal
+      - "-auth.enabled=false"                           # disables the requirement for the X-Scope-OrgID header
+      - "-server.http-listen-port=3200"
+    ports:
+      - "3200:3200"
+
+  nodejs:
+    build: .
+    command: node --require './tracing.js' index.js
+    ports:
+      - "8080:8080"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://agent:4318
+      - OTEL_SERVICE_NAME=nodejs-opentelemetry-tempo
+
+  agent:
+    image: grafana/agent:latest
+    volumes:
+      - ./etc:/etc
+    entrypoint:
+      - /bin/agent
+      - -config.file=/etc/agent.yaml
+      - -config.expand-env
+      - -config.enable-read-api
+    environment:
+      TEMPO_HOST: tempo:4317
+    ports:
+      - "12345:12345"
+    depends_on:
+      - tempo
